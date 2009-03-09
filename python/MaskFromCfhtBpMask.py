@@ -4,6 +4,29 @@ import lsst.afw.image as afwImage
 import lsst.afw.detection as afwDetection
 import sys, os, re
 import lsst.afw.display.ds9 as ds9
+import lsst.afw.detection.utils as afwDetectionUtils
+
+def MaskPolicyFromImage(fitsfile, policyfile):
+    # input bad pixel image
+    maskImage   = afwImage.ImageF(fitsfile)
+
+    # turn into masked image for detection
+    maskedImage = afwImage.MaskedImageF(maskImage)
+
+    # find bad regions
+    thresh    = afwDetection.Threshold(0.5)
+    ds        = afwDetection.DetectionSetF(maskedImage, thresh)
+    fpList    = ds.getFootprints()
+
+    buff = open(policyfile, 'w')
+    buff.write('#<?cfg paf policy ?>\n')
+    buff.write('# Bad pixels for CFHT image %s\n' % (fitsfile))
+    buff.write('# MUST BE USED BEFORE TRIMMING OF IMAGE\n')
+    
+    for i in range(fpList.size()):
+        afwDetectionUtils.writeFootprintAsDefects(buff, fpList[i])
+    buff.close()
+    
 
 rootdir  = '.'
 infile   = sys.argv[1]
@@ -11,6 +34,8 @@ basename = re.sub('.fits', '', os.path.basename(infile))
 basedir  = os.path.join(rootdir, basename)
 if not os.path.isdir(basedir):
     os.mkdir(basedir)
+
+maskFormat = re.compile('^\[(\d+):(\d+),(\d+):(\d+)\]$')
 
 ptr    = pyfits.open(infile)
 for i in range(1, 37):
@@ -25,23 +50,42 @@ for i in range(1, 37):
     mask.set(0)
     
     bitmask = mask.getPlaneBitMask('BAD')
-    print bitmask
     for card in ccdHeader.ascardlist().keys():
         if card.startswith('MASK_'):
             datasec = ccdHeader[card]
-            print datasec
-            bbox    = ipIsr.BboxFromDatasec(datasec)
-            print type(bbox)
-            print bbox.getX0(), bbox.getX1(), bbox.getY0(), bbox.getY1()
-            fp      = afwDetection.Footprint(bbox)
-            print fp.getBBox().getX0(), fp.getBBox().getX1(), fp.getBBox().getY0(), fp.getBBox().getY1()
-            
-            afwDetection.setMaskFromFootprint(mask, fp, bitmask)
-            break
 
-    outfile0 = '%d.fits' % (i)
-    print '# Writing', outfile0
-    mask.writeFits(outfile0)
+            # Unfortunately, the format of the masks is wrong.  Its
+            # x0,y0  x1,y1
+            # e.g.
+            # MASK_000= '[1:1,2112:1]'       / Bad pixels area definition
+            #
+            # Datasecs normally have
+            # x0,x1  y0,y1
+            # e.g.
+            # CCDSIZE = '[1:2048,1:4612]'    / Detector imaging area size
+            # bbox    = ipIsr.BboxFromDatasec(datasec)
+
+            match = maskFormat.match(datasec)
+            if match == None:
+                # unable to match mask area!
+                print '# WARNING: Extn', nExt, 'unable to parse', maskArea
+                continue
+            group = map(int, match.groups())
+
+            # ACB : by visual inspection, the y0 values can be too
+            # high by 1.  however, since some of the y0 values are '1'
+            # in the mask string, i can't decrement this by 2 without
+            # going off the image.  we just deal with this for dc3a.
+            bbox  = afwImage.BBox(afwImage.PointI(group[0]-1, group[1]-1),
+                                  afwImage.PointI(group[2]-1, group[3]-1))
+            
+            fp      = afwDetection.Footprint(bbox)
+            afwDetection.setMaskFromFootprint(mask, fp, bitmask)
+
+    # debugging
+    #outfile0 = '%d.fits' % (i)
+    #print '# Writing', outfile0
+    #mask.writeFits(outfile0)
     
     bboxA = afwImage.BBox(afwImage.PointI(0,0),
                           afwImage.PointI(1055,4611))
@@ -51,32 +95,37 @@ for i in range(1, 37):
     cfhtAmpA  = afwImage.MaskU(mask, bboxA)
     cfhtAmpB  = afwImage.MaskU(mask, bboxB)
 
-    #print cfhtAmpA.getDimensions()
-    #print cfhtAmpB.getDimensions()
-
     # copied from stageCfhtForDc3a
     nPixY = 1153
-    for i in range(4):
-        y0 = i * nPixY
+    for j in range(4):
+        y0 = j * nPixY
         y1 = y0 + nPixY - 1
 
         bbox = afwImage.BBox(afwImage.PointI(0,y0),
                              afwImage.PointI(1055,y1))
-        #print bbox.getX0(), bbox.getX1(), bbox.getY0(), bbox.getY1()
         lsstAmpA = afwImage.MaskU(cfhtAmpA, bbox)
         lsstAmpB = afwImage.MaskU(cfhtAmpA, bbox)
 
-        #print lsstAmpA.getDimensions()
-        #print lsstAmpB.getDimensions()
+        Aid = j + 1
+        Bid = j + 5
 
-        Aid = i + 1
-        Bid = i + 5
-
+        # debugging
         outfileA = os.path.join(raftdir, '%s_%d_%s.fits' % (basename, i, Aid))
         outfileB = os.path.join(raftdir, '%s_%d_%s.fits' % (basename, i, Bid))
         print '# Writing', outfileA
         lsstAmpA.writeFits(outfileA)
         print '# Writing', outfileB
         lsstAmpB.writeFits(outfileB)
+
+        policyA = os.path.join(raftdir, '%s_%d_%s.paf' % (basename, i, Aid))
+        policyB = os.path.join(raftdir, '%s_%d_%s.paf' % (basename, i, Bid))
+
+        MaskPolicyFromImage(outfileA, policyA)
+        MaskPolicyFromImage(outfileB, policyB)
+
+
+
+        
+        
         
         
