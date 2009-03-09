@@ -21,7 +21,7 @@ def MaskPolicyFromImage(fitsfile, policyfile):
     buff = open(policyfile, 'w')
     buff.write('#<?cfg paf policy ?>\n')
     buff.write('# Bad pixels for CFHT image %s\n' % (fitsfile))
-    buff.write('# MUST BE USED BEFORE TRIMMING OF IMAGE\n')
+    buff.write('# Coordinates are for untrimmed image\n')
     
     for i in range(fpList.size()):
         afwDetectionUtils.writeFootprintAsDefects(buff, fpList[i])
