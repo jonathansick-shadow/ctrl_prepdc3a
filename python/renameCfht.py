@@ -12,14 +12,16 @@ def newName(visit, exposure, ccd, amp):
 def doRename(string):
     fields = string.split('/')
 
-    visit  = int(re.sub('o', '', fields[1]))
-    print 'mkdi %s' % (visit)
-    ccd    = int(fields[2])
-    print 'mkdir %s' % (os.path.join(visit, ccd))
+    visit  = int(re.sub('o', '', fields[0]))
+    print 'mkdir %s' % (visit)
+    ccd    = int(fields[1]) - 1 # for CFHT
+    print 'mkdir %s' % (os.path.join(str(visit), str(ccd)))
 
-    for amp in range(1,8):
-        rename = newName(visit, 0, ccd, amp-1)
-        print 'mv %s %s' % (string, rename)
+    fields = fields[2].split('_')
+    amp    = int( fields[-1][0] )
 
+    rename = newName(visit, 0, ccd, amp)
+    print 'mv %s %s' % (string, rename)
+   
 for file in sys.argv[1:]:
     doRename(file)
