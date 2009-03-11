@@ -1,4 +1,4 @@
-import os, re
+import os, re, sys
 
 # raw images are going to be called :
 # visit/exposure/ccd/amp*.fits
