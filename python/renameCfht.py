@@ -10,11 +10,11 @@ def newName(visit, exposure, ccd, amp):
     return os.path.join(directory, filename)
 
 def doRename(string):
-    fields = '/'.split(string)
+    fields = string.split('/')
 
-    visit  = int(re.sub('o', '', fields[0]))
+    visit  = int(re.sub('o', '', fields[1]))
     print 'mkdi %s' % (visit)
-    ccd    = int(fields[1])
+    ccd    = int(fields[2])
     print 'mkdir %s' % (os.path.join(visit, ccd))
 
     for amp in range(1,8):
