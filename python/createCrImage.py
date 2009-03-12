@@ -1,4 +1,4 @@
-import sys, re
+import sys, re, os
 import lsst.afw.image as afwImage
 import lsst.afw.math as afwMath
 
@@ -52,7 +52,8 @@ for inputfile in sys.argv[1:]:
     outfile = re.sub('e000', 'e001', outfile)
 
     fields = inputfile.split('/')
-    os.path.mkdir( os.path.join(fields[0], '1') )
+    if not os.path.isdir(os.path.join(fields[0], '1') ):
+        os.mkdir( os.path.join(fields[0], '1') )
     
     imc.writeFits( outfile )
     

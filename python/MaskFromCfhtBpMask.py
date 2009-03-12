@@ -1,5 +1,4 @@
 import pyfits
-import lsst.ip.isr as ipIsr
 import lsst.afw.image as afwImage
 import lsst.afw.detection as afwDetection
 import sys, os, re
