@@ -32,17 +32,17 @@ def addCosmicRays(image, nCR=100, emin=100, emax=1000):
 
         for x, y, amp in badPixels:
             if x >= 0 and x < width and y >= 0 and y < height:
-                image.set(x, y, amp)
+                image.set(x, y, image.get(x,y)+amp)
 
             while rand.uniform() < 0.1:
-                image.set(x, y, (emax - emin)*rand.uniform())
+                image.set(x, y, image.get(x,y)+(emax - emin)*rand.uniform())
 
                 x += rand.uniformInt(3) - 1
                 y += rand.uniformInt(3) - 1
 
             for x, y, amp in badPixels:
                 if x >= 0 and x < width and y >= 0 and y < height:
-                    image.set(x, y, amp)
+                    image.set(x, y, image.get(x,y)+amp)
 
 
 for inputfile in sys.argv[1:]:
