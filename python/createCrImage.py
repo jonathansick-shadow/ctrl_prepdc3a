@@ -47,6 +47,9 @@ def addCosmicRays(image, nCR=100, emin=100, emax=1000):
 
 for inputfile in sys.argv[1:]:
     imc       = afwImage.ImageF(inputfile)
+    metadata  = afwImage.readMetadata(inputfile)
+    metadata.setInt('EXPID', 1)
+    
     addCosmicRays(imc)
     outfile = re.sub('/0/', '/1/', inputfile)
     outfile = re.sub('e000', 'e001', outfile)
@@ -54,6 +57,7 @@ for inputfile in sys.argv[1:]:
     fields = inputfile.split('/')
     if not os.path.isdir(os.path.join(fields[0], '1') ):
         os.mkdir( os.path.join(fields[0], '1') )
-    
-    imc.writeFits( outfile )
+
+    dim = afwImage.DecoratedImageF(imc)
+    dim.writeFits( outfile, metadata )
     
