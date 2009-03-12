@@ -81,8 +81,8 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
         headerB.update('LSSTSS2',  '[%d:%d, 0:1056]' % (y0, y1), 'pyfits substamp from trimmed CFHT image')
 
         # exposure id
-        headerA.update('EXPID',  1, 'LSST VISIT')
-        headerB.update('EXPID',  1, 'LSST VISIT')
+        headerA.update('EXPID',  0, 'LSST VISIT')
+        headerB.update('EXPID',  0, 'LSST VISIT')
 
         # DONT FORGET TO RESIZE
         headerA.update('NAXIS1', lsstAmpA.shape[0])
