@@ -2,22 +2,21 @@ import sys, re, os
 sys.path.append('/lsst/home/becker/python/pyfits-1.3/lib/python')
 import pyfits
 
-def newName(visit, exposure, ccd, amp):
-    directory = os.path.join(str(visit), str(exposure))
-    filename  = 'raw-%06d-e%03d-c%03d-a%03d.fits' % (visit, exposure, ccd, amp)
+def newName(version, type, ccd, amp):
+    filename  = '%s-c%03d-a%03d.fits' % (type, ccd, amp)
+    return os.path.join(version, filename)
 
-    return os.path.join(directory, filename)
+def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/', isCal=True):
+    fields   = infile.split('.')
+    version  = fields[0]
+    type     = fields[1]
+    filter   = fields[2]
+    ccddir   = os.path.join(version, str(ccd))
 
-def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/', isMask=False):
-    basename = re.sub('.fits', '', os.path.basename(infile))
-    basename = re.sub('o', '', basename)
-    basedir  = os.path.join(rootdir, basename)
-    expdir   = os.path.join(basedir, '0')
-
-    if not os.path.isdir(basedir):
-        os.mkdir(basedir)
-    if not os.path.isdir(expdir):
-        os.mkdir(expdir)
+    if not os.path.isdir(version):
+        os.mkdir(version)
+    if not os.path.isdir(ccddir):
+        os.mkdir(ccddir)
     
     # We have to undo whatever imsplice has done
     #
@@ -48,16 +47,20 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
     # A pixels  : 1:1056     1:4612
     # B pixels  : 1057:2112  1:4612
     # note that pyfits convetion is y, x
-    cfhtAmpA  = data[0:4612, 0:1056]
-    cfhtAmpB  = data[0:4612, 1056:2112]
+
+    cfhtAmpA  = data[:4612, :1056]
+    cfhtAmpB  = data[:4612, 1056:]
 
     nPixY = 1153
     for i in range(4):
         y0 = i * nPixY
         y1 = y0 + nPixY
 
-        lsstAmpA = cfhtAmpA[y0:y1, 33:1056]
-        lsstAmpB = cfhtAmpB[y0:y1, 0:(1056-33)]
+        lsstAmpA = cfhtAmpA[y0:y1, 0:1056]
+        lsstAmpB = cfhtAmpB[y0:y1, 0:1056]
+
+        #print 'A2', lsstAmpA[0][0]
+        #print 'B2', lsstAmpB[0][0]
 
         headerA  = header.copy()
         headerB  = header.copy()
@@ -90,7 +93,7 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
         headerA.update('NAXIS2', lsstAmpA.shape[1])
         headerB.update('NAXIS2', lsstAmpB.shape[1])
 
-        if not isMask:
+        if not isCal:
             # reset the appropriate readnoise
             headerA.update('RDNOISE',  headerA['RDNOISEA'])
             headerB.update('RDNOISE',  headerB['RDNOISEB'])
@@ -127,8 +130,8 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
             else:
                 headerB.update('CRPIX1',  headerB['CRPIX1'] - 33)
 
-        outfileA = newName(int(basename), 0, ccd, Aid)
-        outfileB = newName(int(basename), 0, ccd, Bid)
+        outfileA = newName(version, type+'-'+filter, ccd, Aid)
+        outfileB = newName(version, type+'-'+filter, ccd, Bid)
         print '# Writing', outfileA
         pyfits.PrimaryHDU(lsstAmpA, headerA).writeto(outfileA, output_verify='silentfix', clobber=True)
         print '# Writing', outfileB
