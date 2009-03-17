@@ -48,16 +48,17 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
     # B pixels  : 1057:2112  1:4612
     # note that pyfits convetion is y, x
 
-    cfhtAmpA  = data[:4612, :1056]
-    cfhtAmpB  = data[:4612, 1056:]
+    cfhtAmpA  = data[:4612, 0:1056]
+    cfhtAmpB  = data[:4612, 1056:2112]
 
     nPixY = 1153
     for i in range(4):
         y0 = i * nPixY
         y1 = y0 + nPixY
 
-        lsstAmpA = cfhtAmpA[y0:y1, 0:1056]
-        lsstAmpB = cfhtAmpB[y0:y1, 0:1056]
+        # since they are not trimmed to it here
+        lsstAmpA = cfhtAmpA[y0:y1, 32:1056]
+        lsstAmpB = cfhtAmpB[y0:y1, 0:(1056-32)]
 
         #print 'A2', lsstAmpA[0][0]
         #print 'B2', lsstAmpB[0][0]
@@ -75,23 +76,15 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
         headerA.update('LSSTAMP',  Aid)
         headerB.update('LSSTAMP',  Bid)
 
-        # how did we get these data?
-        headerA.update('LSSTSS1', '[0:4612,0:1056]',    'pyfits substamp from original CFHT image')
-        headerB.update('LSSTSS1', '[0:4612,1057:4644]', 'pyfits substamp from original CFHT image')
-
-        # again...
-        headerA.update('LSSTSS2',  '[%d:%d, 0:1056]' % (y0, y1), 'pyfits substamp from trimmed CFHT image')
-        headerB.update('LSSTSS2',  '[%d:%d, 0:1056]' % (y0, y1), 'pyfits substamp from trimmed CFHT image')
-
         # exposure id
         headerA.update('EXPID',  0, 'LSST VISIT')
         headerB.update('EXPID',  0, 'LSST VISIT')
 
         # DONT FORGET TO RESIZE
-        headerA.update('NAXIS1', lsstAmpA.shape[0])
-        headerB.update('NAXIS1', lsstAmpB.shape[0])
-        headerA.update('NAXIS2', lsstAmpA.shape[1])
-        headerB.update('NAXIS2', lsstAmpB.shape[1])
+        #headerA.update('NAXIS1', lsstAmpA.shape[0])
+        #headerB.update('NAXIS1', lsstAmpB.shape[0])
+        #headerA.update('NAXIS2', lsstAmpA.shape[1])
+        #headerB.update('NAXIS2', lsstAmpB.shape[1])
 
         if not isCal:
             # reset the appropriate readnoise
