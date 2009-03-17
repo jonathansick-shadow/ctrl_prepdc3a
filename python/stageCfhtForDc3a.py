@@ -56,8 +56,8 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
         y0 = i * nPixY
         y1 = y0 + nPixY
 
-        lsstAmpA = cfhtAmpA[y0:y1, 33:1056]
-        lsstAmpB = cfhtAmpB[y0:y1, 0:(1056-33)]
+        lsstAmpA = cfhtAmpA[y0:y1, :1056]
+        lsstAmpB = cfhtAmpB[y0:y1, :1056]
 
         headerA  = header.copy()
         headerB  = header.copy()
@@ -85,10 +85,10 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
         headerB.update('EXPID',  0, 'LSST VISIT')
 
         # DONT FORGET TO RESIZE
-        headerA.update('NAXIS1', lsstAmpA.shape[0])
-        headerB.update('NAXIS1', lsstAmpB.shape[0])
-        headerA.update('NAXIS2', lsstAmpA.shape[1])
-        headerB.update('NAXIS2', lsstAmpB.shape[1])
+        #headerA.update('NAXIS1', lsstAmpA.shape[0])
+        #headerB.update('NAXIS1', lsstAmpB.shape[0])
+        #headerA.update('NAXIS2', lsstAmpA.shape[1])
+        #headerB.update('NAXIS2', lsstAmpB.shape[1])
 
         if not isMask:
             # reset the appropriate readnoise
@@ -113,7 +113,7 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
             
             # set the appropriate crpix1
             headerA.update('CRPIX1',  headerA['CRPIX1'])
-            headerB.update('CRPIX1',  headerB['CRPIX1'] - 1024)
+            headerB.update('CRPIX1',  headerB['CRPIX1'] - 1023)
             
             # set the appropriate crpix2
             headerA.update('CRPIX2',  headerA['CRPIX2'] - y0)
