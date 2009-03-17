@@ -38,9 +38,9 @@ maskFormat = re.compile('^\[(\d+):(\d+),(\d+):(\d+)\]$')
 
 ptr    = pyfits.open(infile)
 for i in range(1, 37):
-    raftdir  = os.path.join(basedir, str(i))
-    if not os.path.isdir(raftdir):
-        os.mkdir(raftdir)
+    #raftdir  = os.path.join(basedir, str(i))
+    #if not os.path.isdir(raftdir):
+    #    os.mkdir(raftdir)
         
     ccdHeader = ptr[i].header
     nColMask  = ccdHeader['NAXIS1']
@@ -85,11 +85,20 @@ for i in range(1, 37):
     #outfile0 = '%d.fits' % (i)
     #print '# Writing', outfile0
     #mask.writeFits(outfile0)
+
+    # trim this thing!  it includes the overscan etc...
     
-    bboxA = afwImage.BBox(afwImage.PointI(0,0),
+    bboxA = afwImage.BBox(afwImage.PointI(32,0),
                           afwImage.PointI(1055,4611))
-    bboxB = afwImage.BBox(afwImage.PointI(1056,0),
-                          afwImage.PointI(2111,4611))
+
+    bboxB = afwImage.BBox(afwImage.PointI(1055,0),
+                          afwImage.PointI(2111-32,4611))
+
+    #bboxA = afwImage.BBox(afwImage.PointI(0,0),
+    #                      afwImage.PointI(1055,4611))
+
+    #bboxB = afwImage.BBox(afwImage.PointI(1056,0),
+    #                      afwImage.PointI(2111,4611))
 
     cfhtAmpA  = afwImage.MaskU(mask, bboxA)
     cfhtAmpB  = afwImage.MaskU(mask, bboxB)
@@ -101,23 +110,26 @@ for i in range(1, 37):
         y1 = y0 + nPixY - 1
 
         bbox = afwImage.BBox(afwImage.PointI(0,y0),
-                             afwImage.PointI(1055,y1))
+                             afwImage.PointI(1023,y1))
+        
         lsstAmpA = afwImage.MaskU(cfhtAmpA, bbox)
         lsstAmpB = afwImage.MaskU(cfhtAmpA, bbox)
 
-        Aid = j + 1
-        Bid = j + 5
+        Aid = j + 0
+        Bid = j + 4
 
         # debugging
-        outfileA = os.path.join(raftdir, '%s_%d_%s.fits' % (basename, i, Aid))
-        outfileB = os.path.join(raftdir, '%s_%d_%s.fits' % (basename, i, Bid))
+        outfileA = os.path.join(basedir, 'defect-c%03d-a%03d.fits' % (i-1, Aid)) # %s_%d_%s.fits' % (basename, i, Aid))
+        outfileB = os.path.join(basedir, 'defect-c%03d-a%03d.fits' % (i-1, Bid)) #'%s_%d_%s.fits' % (basename, i, Bid))
         print '# Writing', outfileA
         lsstAmpA.writeFits(outfileA)
         print '# Writing', outfileB
         lsstAmpB.writeFits(outfileB)
 
-        policyA = os.path.join(raftdir, '%s_%d_%s.paf' % (basename, i, Aid))
-        policyB = os.path.join(raftdir, '%s_%d_%s.paf' % (basename, i, Bid))
+        #policyA = os.path.join(raftdir, '%s_%d_%s.paf' % (basename, i, Aid))
+        #policyB = os.path.join(raftdir, '%s_%d_%s.paf' % (basename, i, Bid))
+        policyA = os.path.join(basedir, 'defect-c%03d-a%03d.paf' % (i-1, Aid))
+        policyB = os.path.join(basedir, 'defect-c%03d-a%03d.paf' % (i-1, Bid))
 
         MaskPolicyFromImage(outfileA, policyA)
         MaskPolicyFromImage(outfileB, policyB)
