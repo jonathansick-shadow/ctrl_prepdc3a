@@ -16,8 +16,8 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
 
     if not os.path.isdir(version):
         os.mkdir(version)
-    if not os.path.isdir(ccddir):
-        os.mkdir(ccddir)
+    #if not os.path.isdir(ccddir):
+    #    os.mkdir(ccddir)
     
     # We have to undo whatever imsplice has done
     #
