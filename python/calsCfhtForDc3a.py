@@ -1,6 +1,7 @@
 import sys, re, os
 sys.path.append('/lsst/home/becker/python/pyfits-1.3/lib/python')
 import pyfits
+import numpy
 
 def newName(version, type, ccd, amp):
     filename  = '%s-c%03d-a%03d_img.fits' % (type, ccd, amp)
