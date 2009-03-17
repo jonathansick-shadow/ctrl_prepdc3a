@@ -3,7 +3,7 @@ sys.path.append('/lsst/home/becker/python/pyfits-1.3/lib/python')
 import pyfits
 
 def newName(version, type, ccd, amp):
-    filename  = '%s-c%03d-a%03d.fits' % (type, ccd, amp)
+    filename  = '%s-c%03d-a%03d_img.fits' % (type, ccd, amp)
     return os.path.join(version, filename)
 
 def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/', isCal=True):
@@ -127,8 +127,26 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
         outfileB = newName(version, type+'-'+filter, ccd, Bid)
         print '# Writing', outfileA
         pyfits.PrimaryHDU(lsstAmpA, headerA).writeto(outfileA, output_verify='silentfix', clobber=True)
+
+        maskA = re.sub('_img.fits', '_msk.fits', outfileA)
+        lsstAmpA *= 0
+        pyfits.PrimaryHDU(lsstAmpA.astype(numpy.int16)).writeto(maskA, clobber=True)
+
+        varA  = re.sub('_img.fits', '_var.fits', outfileA)
+        lsstAmpA += 0.1
+        pyfits.PrimaryHDU(lsstAmpA).writeto(varA, clobber=True)
+
+        
         print '# Writing', outfileB
         pyfits.PrimaryHDU(lsstAmpB, headerB).writeto(outfileB, output_verify='silentfix', clobber=True)
+
+        maskB = re.sub('_img.fits', '_msk.fits', outfileB)
+        lsstAmpB *= 0
+        pyfits.PrimaryHDU(lsstAmpB.astype(numpy.int16)).writeto(maskB, clobber=True)
+
+        varB  = re.sub('_img.fits', '_var.fits', outfileB)
+        lsstAmpB += 0.1
+        pyfits.PrimaryHDU(lsstAmpB).writeto(varB, clobber=True)
     
 
 for infile in sys.argv[1:]:
