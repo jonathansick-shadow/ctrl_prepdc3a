@@ -113,7 +113,7 @@ for i in range(1, 37):
                              afwImage.PointI(1023,y1))
         
         lsstAmpA = afwImage.MaskU(cfhtAmpA, bbox)
-        lsstAmpB = afwImage.MaskU(cfhtAmpA, bbox)
+        lsstAmpB = afwImage.MaskU(cfhtAmpB, bbox)
 
         Aid = j + 0
         Bid = j + 4
