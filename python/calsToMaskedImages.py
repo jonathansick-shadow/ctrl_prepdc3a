@@ -10,7 +10,7 @@ for calib in sys.argv[1:]:
     pyfits.PrimaryHDU(data.astype(numpy.int16)).writeto(mask, clobber=True)
 
     var = re.sub('.fits', '_var.fits', calib)
-    data += 0.1
+    data += 0.0
     pyfits.PrimaryHDU(data).writeto(var, clobber=True)
 
     cmd  = 'mv %s %s' % (calib, img)
