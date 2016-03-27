@@ -1,24 +1,28 @@
-import sys, re, os
+import sys
+import re
+import os
 sys.path.append('/lsst/home/becker/python/pyfits-1.3/lib/python')
 import pyfits
 import numpy
 
+
 def newName(version, type, ccd, amp):
-    filename  = '%s-c%03d-a%03d_img.fits' % (type, ccd, amp)
+    filename = '%s-c%03d-a%03d_img.fits' % (type, ccd, amp)
     return os.path.join(version, filename)
 
+
 def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/', isCal=True):
-    fields   = infile.split('.')
-    version  = fields[0]
-    type     = fields[1]
-    filter   = fields[2]
-    ccddir   = os.path.join(version, str(ccd))
+    fields = infile.split('.')
+    version = fields[0]
+    type = fields[1]
+    filter = fields[2]
+    ccddir = os.path.join(version, str(ccd))
 
     if not os.path.isdir(version):
         os.mkdir(version)
-    #if not os.path.isdir(ccddir):
+    # if not os.path.isdir(ccddir):
     #    os.mkdir(ccddir)
-    
+
     # We have to undo whatever imsplice has done
     #
     # HISTORY imsplice: FLIPS ver 2.0 - Elixir by CFHT - Thu Jun 5 2003 - 22:11:29
@@ -34,7 +38,7 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
     # HISTORY imsplice: New keywords are ASECA, ASECB, CSECA, CSECB
 
     # http://cfht.hawaii.edu/Instruments/Imaging/MegaPrime/rawdata.html
-    
+
     # Summary:
     # The CCD images are 2k x 4k.
     # We will chop into CFHT amp images 1k x 4k.
@@ -44,13 +48,13 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
     # The CCD images are 2112 by 4644.
     #
     # We ignore the overscan on top (TSA)
-    # 
+    #
     # A pixels  : 1:1056     1:4612
     # B pixels  : 1057:2112  1:4612
     # note that pyfits convetion is y, x
 
-    cfhtAmpA  = data[:4612, 0:1056]
-    cfhtAmpB  = data[:4612, 1056:2112]
+    cfhtAmpA = data[:4612, 0:1056]
+    cfhtAmpB = data[:4612, 1056:2112]
 
     nPixY = 1153
     for i in range(4):
@@ -61,11 +65,11 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
         lsstAmpA = cfhtAmpA[y0:y1, 32:1056]
         lsstAmpB = cfhtAmpB[y0:y1, 0:(1056-32)]
 
-        #print 'A2', lsstAmpA[0][0]
-        #print 'B2', lsstAmpB[0][0]
+        # print 'A2', lsstAmpA[0][0]
+        # print 'B2', lsstAmpB[0][0]
 
-        headerA  = header.copy()
-        headerB  = header.copy()
+        headerA = header.copy()
+        headerB = header.copy()
 
         # which cfht amp?
         headerA.update('AMPLIST', 'A')
@@ -74,12 +78,12 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
         # which lsst amp?
         Aid = i + 0
         Bid = i + 4
-        headerA.update('LSSTAMP',  Aid)
-        headerB.update('LSSTAMP',  Bid)
+        headerA.update('LSSTAMP', Aid)
+        headerB.update('LSSTAMP', Bid)
 
         # exposure id
-        headerA.update('EXPID',  0, 'LSST VISIT')
-        headerB.update('EXPID',  0, 'LSST VISIT')
+        headerA.update('EXPID', 0, 'LSST VISIT')
+        headerB.update('EXPID', 0, 'LSST VISIT')
 
         # DONT FORGET TO RESIZE
         #headerA.update('NAXIS1', lsstAmpA.shape[0])
@@ -89,40 +93,40 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
 
         if not isCal:
             # reset the appropriate readnoise
-            headerA.update('RDNOISE',  headerA['RDNOISEA'])
-            headerB.update('RDNOISE',  headerB['RDNOISEB'])
-            
+            headerA.update('RDNOISE', headerA['RDNOISEA'])
+            headerB.update('RDNOISE', headerB['RDNOISEB'])
+
             # reset the appropriate gain
-            headerA.update('GAIN',  headerA['GAINA'])
-            headerB.update('GAIN',  headerB['GAINB'])
-            
+            headerA.update('GAIN', headerA['GAINA'])
+            headerB.update('GAIN', headerB['GAINB'])
+
             # set the appropriate overscan
-            headerA.update('BIASSEC', '[1:32,1:%d]'      % (nPixY))
+            headerA.update('BIASSEC', '[1:32,1:%d]' % (nPixY))
             headerB.update('BIASSEC', '[1025:1056,1:%d]' % (nPixY))
-            
+
             # set the appropriate datasec
-            headerA.update('DATASEC', '[33:1056,1:%d]'   % (nPixY))
-            headerB.update('DATASEC', '[1:1024,1:%d]'    % (nPixY))
-            
+            headerA.update('DATASEC', '[33:1056,1:%d]' % (nPixY))
+            headerB.update('DATASEC', '[1:1024,1:%d]' % (nPixY))
+
             # set the appropriate trimsec
-            headerA.update('TRIMSEC',  headerA['DATASEC'])
-            headerB.update('TRIMSEC',  headerB['DATASEC'])
-            
+            headerA.update('TRIMSEC', headerA['DATASEC'])
+            headerB.update('TRIMSEC', headerB['DATASEC'])
+
             # set the appropriate crpix1
-            headerA.update('CRPIX1',  headerA['CRPIX1'])
-            headerB.update('CRPIX1',  headerB['CRPIX1'] - 1024)
-            
+            headerA.update('CRPIX1', headerA['CRPIX1'])
+            headerB.update('CRPIX1', headerB['CRPIX1'] - 1024)
+
             # set the appropriate crpix2
-            headerA.update('CRPIX2',  headerA['CRPIX2'] - y0)
-            headerB.update('CRPIX2',  headerB['CRPIX2'] - y0)
-            
+            headerA.update('CRPIX2', headerA['CRPIX2'] - y0)
+            headerB.update('CRPIX2', headerB['CRPIX2'] - y0)
+
             # EMPERICAL
             # 33 PIXELS IS OVERSCAN SIZE...
             # Maybe its the top overscan that we just got rid of?
             if i > 17:
-                headerA.update('CRPIX1',  headerA['CRPIX1'] - 33)
+                headerA.update('CRPIX1', headerA['CRPIX1'] - 33)
             else:
-                headerB.update('CRPIX1',  headerB['CRPIX1'] - 33)
+                headerB.update('CRPIX1', headerB['CRPIX1'] - 33)
 
         outfileA = newName(version, type+'-'+filter, ccd, Aid)
         outfileB = newName(version, type+'-'+filter, ccd, Bid)
@@ -133,11 +137,10 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
         lsstAmpA *= 0
         pyfits.PrimaryHDU(lsstAmpA.astype(numpy.int16)).writeto(maskA, clobber=True)
 
-        varA  = re.sub('_img.fits', '_var.fits', outfileA)
+        varA = re.sub('_img.fits', '_var.fits', outfileA)
         lsstAmpA += 0.1
         pyfits.PrimaryHDU(lsstAmpA).writeto(varA, clobber=True)
 
-        
         print '# Writing', outfileB
         pyfits.PrimaryHDU(lsstAmpB, headerB).writeto(outfileB, output_verify='silentfix', clobber=True)
 
@@ -145,21 +148,21 @@ def splitCcd(header, data, infile, ccd, rootdir='/lsst/images/repository/input/'
         lsstAmpB *= 0
         pyfits.PrimaryHDU(lsstAmpB.astype(numpy.int16)).writeto(maskB, clobber=True)
 
-        varB  = re.sub('_img.fits', '_var.fits', outfileB)
+        varB = re.sub('_img.fits', '_var.fits', outfileB)
         lsstAmpB += 0.1
         pyfits.PrimaryHDU(lsstAmpB).writeto(varB, clobber=True)
-    
+
 
 for infile in sys.argv[1:]:
-    ptr          = pyfits.open(infile)
+    ptr = pyfits.open(infile)
     commonHeader = ptr[0].header
 
     for i in range(1, 37):
         ccdHeader = ptr[i].header
-        ccdData   = ptr[i].data
+        ccdData = ptr[i].data
 
         # reference image : debugging
         #outfile = 'tmp_%d.fits' % (i)
         #pyfits.PrimaryHDU(ccdData, ccdHeader).writeto(outfile, output_verify='silentfix', clobber=True)
-        
+
         splitCcd(ccdHeader, ccdData, infile, i-1, rootdir='.')

@@ -1,53 +1,56 @@
 import pyfits
 import lsst.afw.image as afwImage
 import lsst.afw.detection as afwDetection
-import sys, os, re
+import sys
+import os
+import re
 import lsst.afw.display.ds9 as ds9
 import lsst.afw.detection.utils as afwDetectionUtils
 
+
 def MaskPolicyFromImage(fitsfile, policyfile):
     # input bad pixel image
-    maskImage   = afwImage.ImageF(fitsfile)
+    maskImage = afwImage.ImageF(fitsfile)
 
     # turn into masked image for detection
     maskedImage = afwImage.MaskedImageF(maskImage)
 
     # find bad regions
-    thresh    = afwDetection.Threshold(0.5)
-    ds        = afwDetection.DetectionSetF(maskedImage, thresh)
-    fpList    = ds.getFootprints()
+    thresh = afwDetection.Threshold(0.5)
+    ds = afwDetection.DetectionSetF(maskedImage, thresh)
+    fpList = ds.getFootprints()
 
     buff = open(policyfile, 'w')
     buff.write('#<?cfg paf policy ?>\n')
     buff.write('# Bad pixels for CFHT image %s\n' % (fitsfile))
     buff.write('# Coordinates are for untrimmed image\n')
-    
+
     for i in range(fpList.size()):
         afwDetectionUtils.writeFootprintAsDefects(buff, fpList[i])
     buff.close()
-    
 
-rootdir  = '.'
-infile   = sys.argv[1]
+
+rootdir = '.'
+infile = sys.argv[1]
 basename = re.sub('.fits', '', os.path.basename(infile))
-basedir  = os.path.join(rootdir, basename)
+basedir = os.path.join(rootdir, basename)
 if not os.path.isdir(basedir):
     os.mkdir(basedir)
 
 maskFormat = re.compile('^\[(\d+):(\d+),(\d+):(\d+)\]$')
 
-ptr    = pyfits.open(infile)
+ptr = pyfits.open(infile)
 for i in range(1, 37):
     #raftdir  = os.path.join(basedir, str(i))
-    #if not os.path.isdir(raftdir):
+    # if not os.path.isdir(raftdir):
     #    os.mkdir(raftdir)
-        
+
     ccdHeader = ptr[i].header
-    nColMask  = ccdHeader['NAXIS1']
-    nRowMask  = ccdHeader['NAXIS2']
-    mask      = afwImage.MaskU(nColMask, nRowMask)
+    nColMask = ccdHeader['NAXIS1']
+    nRowMask = ccdHeader['NAXIS2']
+    mask = afwImage.MaskU(nColMask, nRowMask)
     mask.set(0)
-    
+
     bitmask = mask.getPlaneBitMask('BAD')
     for card in ccdHeader.ascardlist().keys():
         if card.startswith('MASK_'):
@@ -75,33 +78,33 @@ for i in range(1, 37):
             # high by 1.  however, since some of the y0 values are '1'
             # in the mask string, i can't decrement this by 2 without
             # going off the image.  we just deal with this for dc3a.
-            bbox  = afwImage.BBox(afwImage.PointI(group[0]-1, group[1]-1),
-                                  afwImage.PointI(group[2]-1, group[3]-1))
-            
-            fp      = afwDetection.Footprint(bbox)
+            bbox = afwImage.BBox(afwImage.PointI(group[0]-1, group[1]-1),
+                                 afwImage.PointI(group[2]-1, group[3]-1))
+
+            fp = afwDetection.Footprint(bbox)
             afwDetection.setMaskFromFootprint(mask, fp, bitmask)
 
     # debugging
     #outfile0 = '%d.fits' % (i)
-    #print '# Writing', outfile0
-    #mask.writeFits(outfile0)
+    # print '# Writing', outfile0
+    # mask.writeFits(outfile0)
 
     # trim this thing!  it includes the overscan etc...
-    
-    bboxA = afwImage.BBox(afwImage.PointI(32,0),
-                          afwImage.PointI(1055,4611))
 
-    bboxB = afwImage.BBox(afwImage.PointI(1055,0),
-                          afwImage.PointI(2111-32,4611))
+    bboxA = afwImage.BBox(afwImage.PointI(32, 0),
+                          afwImage.PointI(1055, 4611))
 
-    #bboxA = afwImage.BBox(afwImage.PointI(0,0),
+    bboxB = afwImage.BBox(afwImage.PointI(1055, 0),
+                          afwImage.PointI(2111-32, 4611))
+
+    # bboxA = afwImage.BBox(afwImage.PointI(0,0),
     #                      afwImage.PointI(1055,4611))
 
-    #bboxB = afwImage.BBox(afwImage.PointI(1056,0),
+    # bboxB = afwImage.BBox(afwImage.PointI(1056,0),
     #                      afwImage.PointI(2111,4611))
 
-    cfhtAmpA  = afwImage.MaskU(mask, bboxA)
-    cfhtAmpB  = afwImage.MaskU(mask, bboxB)
+    cfhtAmpA = afwImage.MaskU(mask, bboxA)
+    cfhtAmpB = afwImage.MaskU(mask, bboxB)
 
     # copied from stageCfhtForDc3a
     nPixY = 1153
@@ -109,9 +112,9 @@ for i in range(1, 37):
         y0 = j * nPixY
         y1 = y0 + nPixY - 1
 
-        bbox = afwImage.BBox(afwImage.PointI(0,y0),
-                             afwImage.PointI(1023,y1))
-        
+        bbox = afwImage.BBox(afwImage.PointI(0, y0),
+                             afwImage.PointI(1023, y1))
+
         lsstAmpA = afwImage.MaskU(cfhtAmpA, bbox)
         lsstAmpB = afwImage.MaskU(cfhtAmpB, bbox)
 
@@ -119,8 +122,10 @@ for i in range(1, 37):
         Bid = j + 4
 
         # debugging
-        outfileA = os.path.join(basedir, 'defect-c%03d-a%03d.fits' % (i-1, Aid)) # %s_%d_%s.fits' % (basename, i, Aid))
-        outfileB = os.path.join(basedir, 'defect-c%03d-a%03d.fits' % (i-1, Bid)) #'%s_%d_%s.fits' % (basename, i, Bid))
+        outfileA = os.path.join(basedir, 'defect-c%03d-a%03d.fits' %
+                                (i-1, Aid))  # %s_%d_%s.fits' % (basename, i, Aid))
+        outfileB = os.path.join(basedir, 'defect-c%03d-a%03d.fits' %
+                                (i-1, Bid))  # '%s_%d_%s.fits' % (basename, i, Bid))
         print '# Writing', outfileA
         lsstAmpA.writeFits(outfileA)
         print '# Writing', outfileB
@@ -136,7 +141,7 @@ for i in range(1, 37):
 
 
 
-        
-        
-        
-        
+
+
+
+
